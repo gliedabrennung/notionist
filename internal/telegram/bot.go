@@ -4,10 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gliedabrennung/notionist/internal/agent"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+)
+
+var markdownEscaper = strings.NewReplacer(
+	`\`, `\\`,
+	`~`, `\~`,
+	`>`, `\>`,
+	`#`, `\#`,
+	`+`, `\+`,
+	`-`, `\-`,
+	`=`, `\=`,
+	`|`, `\|`,
 )
 
 type Bot struct {
@@ -40,8 +52,9 @@ func NewMessageHandler(taskAgent *agent.TaskAgent) bot.HandlerFunc {
 
 		if messageText == "" || messageText == "/start" {
 			if _, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: chatID,
-				Text:   "Send me a task and I'll create it in Notion. e.g. \"Buy milk tomorrow #groceries #urgent\"",
+				ChatID:    chatID,
+				Text:      markdownEscaper.Replace("Send me a task and I'll create it in Notion. e.g. \"Buy milk tomorrow #groceries #urgent\""),
+				ParseMode: models.ParseModeMarkdownV1,
 			}); err != nil {
 				log.Printf("failed to send message: %v", err)
 			}
@@ -59,8 +72,9 @@ func NewMessageHandler(taskAgent *agent.TaskAgent) bot.HandlerFunc {
 		}
 
 		if _, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: chatID,
-			Text:   reply,
+			ChatID:    chatID,
+			Text:      markdownEscaper.Replace(reply),
+			ParseMode: models.ParseModeMarkdownV1,
 		}); err != nil {
 			log.Printf("failed to send reply: %v", err)
 		}

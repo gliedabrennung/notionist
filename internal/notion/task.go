@@ -51,7 +51,7 @@ func (c *Client) CreateTask(ctx context.Context, task Task) (*TaskResult, error)
 	props := map[string]any{
 		"Name":         titleProp(task.Name),
 		"Project Name": multiSelectProp(task.ProjectName),
-		"Status":       selectProp("To-do"),
+		"Status":       statusProp("To-do"),
 		"Priority":     selectProp(priority),
 		"Complexity":   selectProp(complexity),
 		"Task type":    multiSelectProp(taskType),

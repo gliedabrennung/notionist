@@ -19,7 +19,9 @@ type databaseResponse struct {
 }
 
 type multiSelectProperty struct {
-	Options []map[string]any `json:"multi_select"`
+	MultiSelect struct {
+		Options []map[string]any `json:"options"`
+	} `json:"multi_select"`
 }
 
 func (c *Client) CreateProject(ctx context.Context, projectName string) (*ProjectResult, error) {
@@ -48,7 +50,7 @@ func (c *Client) CreateProject(ctx context.Context, projectName string) (*Projec
 		return nil, fmt.Errorf("decoding Project Name property: %w", err)
 	}
 
-	for _, opt := range ms.Options {
+	for _, opt := range ms.MultiSelect.Options {
 		if name, _ := opt["name"].(string); name == projectName {
 			return &ProjectResult{
 				Status:      "success",
@@ -60,8 +62,8 @@ func (c *Client) CreateProject(ctx context.Context, projectName string) (*Projec
 	}
 
 	colors := []string{"blue", "brown", "default", "gray", "green", "orange", "pink", "purple", "red", "yellow"}
-	used := make(map[string]bool, len(ms.Options))
-	for _, opt := range ms.Options {
+	used := make(map[string]bool, len(ms.MultiSelect.Options))
+	for _, opt := range ms.MultiSelect.Options {
 		if col, _ := opt["color"].(string); col != "" {
 			used[col] = true
 		}
@@ -75,11 +77,11 @@ func (c *Client) CreateProject(ctx context.Context, projectName string) (*Projec
 	}
 
 	newOption := map[string]any{"name": projectName, "color": newColor}
-	ms.Options = append(ms.Options, newOption)
+	ms.MultiSelect.Options = append(ms.MultiSelect.Options, newOption)
 
 	update := map[string]any{
 		"properties": map[string]any{
-			"Project Name": map[string]any{"multi_select": map[string]any{"options": ms.Options}},
+			"Project Name": map[string]any{"multi_select": map[string]any{"options": ms.MultiSelect.Options}},
 		},
 	}
 	if err := c.do(ctx, methodPatch, "/databases/"+c.kanbanDB, update, nil); err != nil {

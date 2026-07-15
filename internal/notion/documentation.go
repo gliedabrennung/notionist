@@ -154,17 +154,51 @@ func (c *Client) SaveTZToDocumentationComplete(ctx context.Context, tz string, d
 }
 
 func (c *Client) createDocPage(ctx context.Context, databaseID, docTitle string, children []Block) (*pageResponse, error) {
+	titlePropName, hasCategory, err := c.docsDBInfo(ctx, databaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	props := map[string]any{
+		titlePropName: titleProp(docTitle),
+	}
+	if hasCategory {
+		props["Category"] = multiSelectProp("Planning")
+	}
+
 	var resp pageResponse
-	err := c.do(ctx, methodPost, "/pages", map[string]any{
-		"parent": map[string]any{"database_id": databaseID},
-		"properties": map[string]any{
-			"Doc name": titleProp(docTitle),
-			"Category": multiSelectProp("Planning"),
-		},
-		"children": children,
+	err = c.do(ctx, methodPost, "/pages", map[string]any{
+		"parent":     map[string]any{"database_id": databaseID},
+		"properties": props,
+		"children":   children,
 	}, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("creating documentation page: %w", err)
 	}
 	return &resp, nil
+}
+
+func (c *Client) docsDBInfo(ctx context.Context, databaseID string) (titleProp string, hasCategory bool, err error) {
+	var db struct {
+		Properties map[string]struct {
+			Type string `json:"type"`
+		} `json:"properties"`
+	}
+	if err := c.do(ctx, methodGet, "/databases/"+databaseID, nil, &db); err != nil {
+		return "", false, fmt.Errorf("getting docs database: %w", err)
+	}
+
+	for name, p := range db.Properties {
+		if p.Type == "title" {
+			titleProp = name
+		}
+		if name == "Category" {
+			hasCategory = true
+		}
+	}
+
+	if titleProp == "" {
+		return "", false, fmt.Errorf("docs database has no title property")
+	}
+	return titleProp, hasCategory, nil
 }

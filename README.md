@@ -14,7 +14,7 @@ specifications (ТЗ) into structured Kanban workflows.
 - **Technical-specification processing** — analyzes a ТЗ, saves it as a documentation
   page, and creates the project + all tasks in one automated pipeline.
 - **Markdown → Notion blocks** conversion and direct block appending.
-- **HTML-formatted replies** back to Telegram (per the agent instruction).
+- **Markdown-formatted replies** back to Telegram.
 
 ## Architecture
 
@@ -73,6 +73,82 @@ database:
 
 The agent instruction is loaded from `prompt.yaml` in the repository root. Override
 the path with the `PROMPT_PATH` env var.
+
+## Setting up Notion
+
+The bot talks to Notion through an **internal integration** and writes into two
+databases you create. No external library is used — the app calls the Notion REST
+API (`Notion-Version: 2022-06-28`) directly.
+
+### 1. Create an integration and get the token
+
+1. Open <https://www.notion.so/my-integrations> and click **New integration**.
+2. Give it a name, pick the workspace, and keep the default capabilities
+   (the integration needs **Read**, **Update** and **Insert** content).
+3. Copy the **Internal Integration Secret** — it looks like `ntn_...`
+   (older tokens start with `secret_`). This is your `NOTION_API_KEY`.
+
+### 2. Create the two databases
+
+Create two databases (or reuse existing ones) in your workspace:
+
+- **Kanban database** — where tasks and projects live.
+- **Documentation database** — where ТЗ / technical specs are stored.
+
+For each database, open it, click **··· → Connections**, and add the integration
+you just created. The integration needs **edit** access. Without this connection,
+every API call returns a permission error.
+
+### 3. Get the database IDs
+
+Open each database as a page and copy the ID from the URL:
+
+```
+https://www.notion.so/<workspace>/<32-char-hex-id>?v=...
+```
+
+The `<32-char-hex-id>` is the database ID — it must contain the hyphens, e.g.
+`1c33b84f-1fac-8055-a0f3-xxxxxxxxxxxx`. Put them into
+`NOTION_KANBAN_DATABASE_ID` and `NOTION_DOCS_DATABASE_ID` (or the matching
+`config.yaml` keys).
+
+### 4. Configure the Kanban database schema
+
+The Kanban database **must** have the following properties (names are matched
+exactly as written):
+
+| Property | Type | Required | Notes / Options |
+| --- | --- | --- | --- |
+| `Name` | Title | yes | Task name (always set). |
+| `Project Name` | Multi-select | yes | Project the task belongs to. |
+| `Status` | **Status** | yes | Must be the dedicated **Status** property type, not *Select*. The app sets it to `To-do`. Suggested options: `To-do`, `In-progress`, `Done`. |
+| `Priority` | Select | yes | Suggested options: `High Priority`, `Medium Priority`, `Low Priority` (default). |
+| `Complexity` | Select | yes | Suggested options: `Hard Complexity`, `Normal Complexity` (default), `Easy Complexity`. |
+| `Task type` | Multi-select | yes | Suggested options: `PROJECT TASK` (default), `DESIGN`, `DOCUMENTATION`. |
+| `Deadline` | Date | no | Set only when the task has a deadline. |
+| `Notes` | Text (rich text) | no | Extra context; set only when provided. |
+
+> `Status` must be a **Status** property, not a plain **Select** — Notion models
+> them differently and the app writes a status group name, not a select option.
+
+### 5. Configure the documentation database schema
+
+The documentation database is more permissive:
+
+- It must have **one Title property** — the app auto-detects its real name
+  (it does not assume `Doc name`), so you can name it whatever you like.
+- A `Category` **Multi-select** property is **optional**. If it exists it is
+  filled in; if it does not, it is silently skipped (no error).
+
+### 6. Provide the credentials
+
+Export the three values, or put them (expanded from `${VAR}`) into `config.yaml`:
+
+```bash
+export NOTION_API_KEY="ntn_..."
+export KANBAN_DATABASE_ID="1c33b84f-1fac-8055-a0f3-xxxxxxxxxxxx"
+export DOCS_DATABASE_ID="2d44c95f-2fbd-9166-b1f4-yyyyyyyyyyyy"
+```
 
 ## Running
 

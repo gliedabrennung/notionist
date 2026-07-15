@@ -110,6 +110,10 @@ func selectProp(name string) map[string]any {
 	return map[string]any{"select": map[string]any{"name": name}}
 }
 
+func statusProp(name string) map[string]any {
+	return map[string]any{"status": map[string]any{"name": name}}
+}
+
 func multiSelectProp(names ...string) map[string]any {
 	opts := make([]map[string]any, 0, len(names))
 	for _, n := range names {
