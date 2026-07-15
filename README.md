@@ -87,6 +87,19 @@ are set, then send a message to your Telegram bot:
 - A technical specification (ТЗ) → use `process_tz_to_kanban` to document it and
   create the project with all tasks.
 
+### Docker
+
+`config.yaml` holds secrets and is gitignored, so it is excluded from the image
+build (see `.dockerignore`). Provide it at runtime by mounting the file:
+
+```bash
+docker build -t notionist .
+docker run --rm -v "$PWD/config.yaml:/app/config.yaml" notionist
+```
+
+`prompt.yaml` is baked into the image; override its path with the `PROMPT_PATH`
+env var if needed.
+
 ## Project layout
 
 ```
