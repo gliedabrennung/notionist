@@ -1,0 +1,14 @@
+telegram:
+  token: "${TELEGRAM_BOT_TOKEN}"
+
+gemini:
+  api_key: "${GEMINI_API_KEY}"
+  model: "gemini-2.5-flash"
+
+notion:
+  api_key: "${NOTION_API_KEY}"
+  kanban_database_id: "${KANBAN_DATABASE_ID}"
+  docs_database_id: "${DOCS_DATABASE_ID}"
+
+database:
+  url: "sqlite:///sessions.db"
